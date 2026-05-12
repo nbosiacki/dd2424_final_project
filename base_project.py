@@ -5,8 +5,11 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 import copy
+import pickle
 
 from torch.utils.data import Dataset
+from torch.utils.data import Subset
+from collections import defaultdict
 
 
 CAT_BREEDS = {
@@ -224,5 +227,114 @@ def plot_training_curves(train_losses, test_losses, train_accs, test_accs):
     plt.legend()
     plt.show()
 
-def get_scheduler(optimizer, step_size=10, gamma=0.1):
-    return torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+
+
+def get_stratified_subset(dataset, fraction, seed=42):
+    if fraction >= 1.0:
+        return dataset
+
+    rng = random.Random(seed)
+    class_indices = defaultdict(list)
+    for idx in range(len(dataset)):
+        _, label = dataset[idx]
+        class_indices[int(label)].append(idx)
+
+    selected = []
+    for label, indices in class_indices.items():
+        rng.shuffle(indices)
+        n_keep = max(1, int(len(indices) * fraction))
+        selected.extend(indices[:n_keep])
+
+    return Subset(dataset, selected)
+
+def print_summary(strategy1_results, strategy2_results, fractions):
+    print("\n====== SUMMARY TABLE ======")
+    print(f"{'Fraction':<10} {'S1 l=1':<10} {'S1 l=2':<10} {'S1 l=3':<10} {'S1 l=4':<10} {'S2 grad':<10}")
+    print("-" * 60)
+    for frac in fractions:
+        s1 = strategy1_results[frac]
+        s2 = strategy2_results[frac]
+        print(f"{frac*100:>6.0f}%   "
+              f"{s1[1]:.4f}    {s1[2]:.4f}    {s1[3]:.4f}    {s1[4]:.4f}    {s2:.4f}")
+
+def plot_fraction_comparison(strategy1_results, strategy2_results, fractions):
+    labels = [f"{int(f*100)}%" for f in fractions]
+    x      = np.arange(len(fractions))
+    width  = 0.15
+
+    fig, ax = plt.subplots(figsize=(10, 5))
+    for i, l in enumerate(range(1, 5)):
+        vals = [strategy1_results[f][l] for f in fractions]
+        ax.bar(x + i*width, vals, width, label=f'S1 l={l}')
+
+    s2_vals = [strategy2_results[f] for f in fractions]
+    ax.bar(x + 4*width, s2_vals, width, label='S2 gradual', color='gray')
+
+    ax.set_xticks(x + 2*width)
+    ax.set_xticklabels(labels)
+    ax.set_xlabel('Training data fraction')
+    ax.set_ylabel('Best test accuracy')
+    ax.set_title('Transfer learning strategies vs. data fraction')
+    ax.legend()
+    plt.tight_layout()
+    plt.show()
+
+def save_limited_data_results(strategy1_results,
+                              strategy2_results,
+                              fractions,
+                              filename="limited_data_results.pkl"):
+
+    results = {
+        "strategy1": strategy1_results,
+        "strategy2": strategy2_results,
+        "fractions": fractions
+    }
+
+    with open(filename, "wb") as f:
+        pickle.dump(results, f)
+
+    print(f"Results saved successfully to {filename}")
+
+def load_limited_data_results(
+    filename="limited_data_results.pkl"
+):
+
+    import pickle
+
+    with open(filename, "rb") as f:
+        results = pickle.load(f)
+
+    return (
+        results["strategy1"],
+        results["strategy2"],
+        results["fractions"]
+    )
+
+def get_optimizer_l2(model, l, base_lr=1e-4, weight_decay=1e-4):
+    param_groups = []
+    for i, layer_name in enumerate(RESNET34_LAYER_GROUPS[:l]):
+        lr = base_lr * (0.1 ** i)
+        param_groups.append({
+            'params': getattr(model, layer_name).parameters(),
+            'lr': lr,
+            'weight_decay': weight_decay
+        })
+    param_groups.append({
+        'params': model.fc.parameters(),
+        'lr': base_lr,
+        'weight_decay': weight_decay
+    })
+    return torch.optim.Adam(param_groups)
+
+def print_l2_summary(l2_results, fractions, weight_decays):
+    print("\n====== L2 SUMMARY TABLE ======")
+    print(f"{'Fraction':<10}", end="")
+    for wd in weight_decays:
+        print(f"  wd={wd:<8}", end="")
+    print()
+    print("-" * 60)
+    for frac in fractions:
+        print(f"{frac*100:>6.0f}%   ", end="")
+        for wd in weight_decays:
+            print(f"  {l2_results[frac][wd]:.4f}    ", end="")
+        print()
