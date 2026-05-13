@@ -338,3 +338,12 @@ def print_l2_summary(l2_results, fractions, weight_decays):
         for wd in weight_decays:
             print(f"  {l2_results[frac][wd]:.4f}    ", end="")
         print()
+
+def print_l2_s1_summary(l2_s1_results, fractions, weight_decays):
+    for frac in fractions:
+        print(f"\n====== FRACTION: {frac*100:.0f}% ======")
+        print(f"{'WD':<12} {'S1 l=1':<10} {'S1 l=2':<10} {'S1 l=3':<10} {'S1 l=4':<10}")
+        print("-" * 52)
+        for wd in weight_decays:
+            s1 = l2_s1_results[frac][wd]
+            print(f"{wd:<12}  {s1[1]:.4f}    {s1[2]:.4f}    {s1[3]:.4f}    {s1[4]:.4f}")
