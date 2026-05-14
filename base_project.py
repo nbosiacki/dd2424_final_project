@@ -204,6 +204,8 @@ def train_with_history(model, train_loader, test_loader, optimizer, criterion, d
 def plot_training_curves(train_losses, test_losses, train_accs, test_accs):
     epochs = range(1, len(train_losses) + 1)
 
+    ticks = range(2, len(train_losses) + 1, 2)
+
     # Loss plot
     plt.figure()
     plt.plot(epochs, train_losses, label='Train Loss')
@@ -211,7 +213,7 @@ def plot_training_curves(train_losses, test_losses, train_accs, test_accs):
     plt.xlabel('Epoch')
     plt.ylabel('Loss')
     plt.title('Loss vs Epoch')
-    plt.xticks(range(1, len(train_losses) + 1, 2))
+    plt.xticks(ticks)
     plt.legend()
     plt.show()
 
@@ -222,7 +224,7 @@ def plot_training_curves(train_losses, test_losses, train_accs, test_accs):
     plt.xlabel('Epoch')
     plt.ylabel('Accuracy')
     plt.title('Accuracy vs Epoch')
-    plt.xticks(range(1, len(train_losses) + 1, 2))
+    plt.xticks(ticks)
     plt.legend()
     plt.show()
 
@@ -497,3 +499,25 @@ def plot_imbalanced_comparison(results, cat_breeds):
     ax.legend()
     plt.tight_layout()
     plt.show()
+def print_l2_s1_summary(l2_s1_results, fractions, weight_decays):
+    for frac in fractions:
+        print(f"\n====== FRACTION: {frac*100:.0f}% ======")
+        print(f"{'WD':<12} {'S1 l=1':<10} {'S1 l=2':<10} {'S1 l=3':<10} {'S1 l=4':<10}")
+        print("-" * 52)
+        for wd in weight_decays:
+            s1 = l2_s1_results[frac][wd]
+            print(f"{wd:<12}  {s1[1]:.4f}    {s1[2]:.4f}    {s1[3]:.4f}    {s1[4]:.4f}")
+
+
+def get_scheduler(optimizer, step_size=10, gamma=0.1):
+    return torch.optim.lr_scheduler.StepLR(optimizer, step_size=step_size, gamma=gamma)
+
+def get_model_finetune_dropout(num_classes=37, dropout=0.5):
+    model = models.resnet34(weights=models.ResNet34_Weights.DEFAULT)
+    model.fc = nn.Sequential(
+        nn.Dropout(dropout),
+        nn.Linear(512, num_classes)
+    )
+    for param in model.parameters():
+        param.requires_grad = False
+    return model
