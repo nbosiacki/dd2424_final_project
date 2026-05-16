@@ -19,11 +19,11 @@ def get_weak_transform():
                              std=[0.229, 0.224, 0.225])
     ])
 
-def get_strong_transform():
+def get_strong_transform(magnitude=9):
     return transforms.Compose([
         transforms.Resize((224, 224)),
         transforms.RandomHorizontalFlip(p=0.5),
-        transforms.RandAugment(num_ops=2, magnitude=9),
+        transforms.RandAugment(num_ops=2, magnitude=magnitude),
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406],
                              std=[0.229, 0.224, 0.225])
@@ -73,10 +73,10 @@ class UnlabelledDataset(Dataset):
 # Split
 # Splits train_data into labelled and unlabelled sets
 def get_fixmatch_dataloaders(train_data, test_data, labelled_frac, batch_size=64, mu=7, 
-                             num_workers=2, seed=42):
+                             num_workers=2, seed=42, magnitude=9):
     
     weak_transform   = get_weak_transform()
-    strong_transform = get_strong_transform()
+    strong_transform = get_strong_transform(magnitude=magnitude)
     test_transform   = get_test_transform()
 
     # stratified split
