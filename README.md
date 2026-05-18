@@ -44,14 +44,14 @@ The notebook will extract the archives into `images/` and `annotations/` subdire
 | Fine tune with different fractions of data | 01/5 - 08/5 | Thilini | ✅ |
 | Data augmentation | 01/5 - 10/5 | Chang | |
 | &nbsp;&nbsp;L2 regularization | | Thilini | ✅ |
-| &nbsp;&nbsp;Fine tune with imbalanced classes | | | |
+| &nbsp;&nbsp;Fine tune with imbalanced classes | | | ✅ |
 | &nbsp;&nbsp;Evaluate model | | Thilini | ✅ |
 | Reduced labelled data experiments | 08/5 - 13/5 | Thilini | ✅ |
-| Prepare Semi-Supervised Setup (labelled and unlabeled data) | | | |
-| &nbsp;&nbsp;Stratified labelled/unlabelled split | | | |
+| Prepare Semi-Supervised Setup (labelled and unlabeled data) | | | ✅ |
+| &nbsp;&nbsp;Stratified labelled/unlabelled split | | | ✅ |
 | &nbsp;&nbsp;LabelledDataset and UnlabelledDataset classes | | Thilini | ✅ |
-| Define weak and strong augmentation | | | |
-| &nbsp;&nbsp;Weak: flip + translation (Section 2.3) | | | |
+| Define weak and strong augmentation | | | ✅ |
+| &nbsp;&nbsp;Weak: flip + translation (Section 2.3) | | | ✅ |
 | &nbsp;&nbsp;Strong: RandAugment magnitude=9 (Section 2.3) | | Thilini | ✅ |
 | Implement FixMatch loss | | | |
 | &nbsp;&nbsp;Supervised loss on weak augmented labelled (Eq. 3) | | | |
