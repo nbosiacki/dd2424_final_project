@@ -44,9 +44,31 @@ def train_fixmatch(model, labelled_loader, unlabelled_loader, test_loader,
 
     return history, best_state, best_acc
 
+def run_supervised(labelled_loader, test_loader, device,
+                   num_epochs=30, base_lr=0.03, num_classes=37):
+    model = bp.get_model_finetune(num_classes=num_classes)
+    bp.unfreeze_layers(model, l=2)
+    model = model.to(device)
+    optimizer = torch.optim.SGD(model.parameters(), lr=base_lr,
+                                momentum=0.9, nesterov=True, weight_decay=5e-4)
+    scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
+    criterion = nn.CrossEntropyLoss()
+    best_acc  = 0.0
+
+    for epoch in range(1, num_epochs + 1):
+        _, train_acc = bp.train_epoch(model, labelled_loader, optimizer, criterion, device)
+        scheduler.step()
+        test_acc = evaluate(model, test_loader, device)
+        print(f"  Epoch {epoch:>3} | train {train_acc:.4f} | test {test_acc:.4f}")
+        if test_acc > best_acc:
+            best_acc = test_acc
+
+    return best_acc
+
+
 def run_ablation(labelled_loader, unlabelled_loader, test_loader,
                 tau, recompute_every, device,
-                num_epochs=30, base_lr=0.03, num_classes=37):
+                num_epochs=30, base_lr=0.03, num_classes=37, lambda_u=1.0):
     model = bp.get_model_finetune(num_classes=num_classes)
     bp.unfreeze_layers(model, l=2)
     model = model.to(device)
@@ -54,11 +76,13 @@ def run_ablation(labelled_loader, unlabelled_loader, test_loader,
                                 momentum=0.9, nesterov=True, weight_decay=5e-4)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=num_epochs)
     history   = {'loss_s': [], 'loss_u': [], 'train_acc': [], 'test_acc': [], 'mask_ratio': []}
+    best_acc   = 0.0
+    best_state = None
 
     for epoch in range(1, num_epochs + 1):
         loss_s, loss_u, train_acc, mask_ratio = train_epoch_fixmatch_rc(
             model, labelled_loader, unlabelled_loader, optimizer, device,
-            tau=tau, lambda_u=1.0, recompute_every=recompute_every,
+            tau=tau, lambda_u=lambda_u, recompute_every=recompute_every,
         )   
         scheduler.step()
         test_acc = evaluate(model, test_loader, device)
